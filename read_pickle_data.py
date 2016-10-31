@@ -1,7 +1,8 @@
 import cPickle as pickle
 import os
 
-directory = "D:\\224w\\project\\liwc"
+
+directory = "D:\\\\224w\\\\project\\\\liwc"
 dataset = []
 
 for filename in os.listdir(directory):
