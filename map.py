@@ -8,11 +8,11 @@ import os
 directory = "/Users/Sam/Desktop/fall_2016/CS_224W/project/data/month_user_data"
 seperator = '\t'
 
+# Change this from "3" when running all input files 
 for i in range(3):
 # for filename in os.listdir(directory):
     filename = os.listdir(directory)[i]
     path = os.path.join(directory, filename)
-    # print path
     userSets = pickle.load(open(path, "rb"))
     subRedditName = filename.split('-')[0]
 
