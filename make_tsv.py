@@ -10,9 +10,7 @@ directory = "/Users/Sam/Desktop/fall_2016/CS_224W/project/data/liwc"
 seperator = '\t'
 
 # Read in all LIWC files 
-# for i in range(2048):
 for filename in os.listdir(directory):
-    # filename = os.listdir(directory)[i]
     path = os.path.join(directory, filename)
     liwc_categories = pickle.load(open(path, "rb"))
     subRedditName = filename.split('-')[0]
