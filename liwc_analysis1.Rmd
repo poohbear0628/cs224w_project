@@ -1,0 +1,335 @@
+---
+title: "LIWC Data Analysis 1"
+author: "Samuel Hansen"
+date: "11/2/2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, cache = TRUE)
+```
+
+#Overview
+
+This study examines the relationship between LIWC variables and network 
+variables derived from the network containing the top 10% of the edges by 
+edge weight. 
+
+```{r}
+#Initialize libraries:
+library(pvclust)
+library(ggrepel)
+library(rvest)
+library(stringr)
+library(GGally)
+library(tidyverse)
+```
+
+```{r}
+# Read in data: 
+df <- 
+  read_tsv("../../data/liwc_data.tsv", col_names = FALSE) %>%
+  plyr::rename(replace = c("X1" = "subreddit", "X2" = "category", "X3" = "fraction")) %>%
+  spread(category, fraction) %>%
+  # Impute missing values with column medians 
+  dmap_at(colnames(.), ~ifelse(is.na(.x), median(.x, na.rm = T), .x)) %>%
+  # Merge with graph data  
+  left_join(read_tsv("../../data/partial_G_data.tsv") %>% select(-X1), by = "subreddit")
+```
+
+#Distributions of Sentiment 
+
+##Distributions of Positive vs. Negative Sentiment
+```{r}
+df %>%
+  select(posemo, negemo) %>%
+  gather(category, fraction, everything()) %>%
+  ggplot(mapping = aes(x = fraction, fill  = category)) +
+  geom_density(alpha = 1/2) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_fill_discrete(name = "LIWC Category",
+                      labels = c("posemo" = "Positive Emotion",
+                                 "negemo" = "Negative Emotion")) + 
+  labs(x = "% of Word Category in Subreddit", y = "Density", 
+       title = "Distribution of % of Positive vs. Negative Words in Subreddits")
+```
+
+Positive sentiment is higher than negative sentiment across subreddits,
+on average. 
+
+##Subreddits with Highest Negative Sentiment 
+```{r}
+df %>% 
+  arrange(desc(negemo)) %>%
+  slice(1:20) %>%
+  ggplot(mapping = aes(x = reorder(subreddit, negemo), y = negemo)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(breaks = seq(0,0.13,0.01), labels = scales::percent) +
+  coord_flip() +
+  labs(x = "Subreddit", y = "Average Percent of Negative Emotions Words",
+       title = "Percent of Negative Emotion Words in Top 20 Subreddits")
+```
+
+Subreddits with the highest negative sentiment tend to be related to **Sports**.
+
+##Subreddits with Highest Positive Sentiment 
+```{r}
+df %>% 
+  arrange(desc(posemo)) %>%
+  slice(1:20) %>%
+  ggplot(mapping = aes(x = reorder(subreddit, posemo), y = posemo)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = scales::percent) +
+  coord_flip() +
+  labs(x = "Subreddit", y = "Average Percent of Positive Emotions Words",
+       title = "Percent of Positive Emotion Words in Top 20 Subreddits")
+```
+
+Subreddits with the highest negative sentiment tend to be **NSFW**. 
+
+#Distribution of Network Variables 
+
+##Subreddits with Highest Degree Centrality
+```{r}
+df %>% 
+  arrange(desc(DegCent)) %>%
+  slice(1:20) %>%
+  ggplot(mapping = aes(x = reorder(subreddit, DegCent), y = DegCent)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "Subreddit", y = "Degree Centrality",
+       title = "Degree Centrality in Top 20 Subreddits")
+```
+
+##Subreddits with Highest Closeness Centrality
+```{r}
+df %>% 
+  arrange(desc(CloseCent)) %>%
+  slice(1:20) %>%
+  ggplot(mapping = aes(x = reorder(subreddit, CloseCent), y = CloseCent)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "Subreddit", y = "Closeness Centrality",
+       title = "Closeness Centrality in Top 20 Subreddits")
+```
+
+##Histogram of Unweighted Clustering Coefficients
+```{r}
+df %>%
+  ggplot(mapping = aes(x = ClustCoef)) +
+  geom_histogram(binwidth = 0.02) +
+  scale_x_continuous(breaks = seq(0,1,0.1)) + 
+  labs(x = "Clustering Coefficient", y= "Count", 
+       title = "Histogram of Unweighted Clustering Coefficients")
+```
+
+#Network Variables vs. Sentiment 
+
+We inspect the pairwise relationships between network variables and 
+sentiment scores in the following plot:
+```{r}
+df %>%
+  select(posemo, negemo, DegCent:ClustCoef) %>%
+  ggpairs()
+```
+
+The relationship between sentiment scores and clustering coefficient
+seems to be weak. To take a closer look, the following plots depict the relationship between *unweighted* clustering coefficient and positive and negative sentiment. 
+```{r}
+sentiment_labs <- c("posemo" = "Positive Words",
+                    "negemo" = "Negative Words")
+df %>%
+  select(posemo, negemo, ClustCoef) %>%
+  gather(category, fraction, posemo:negemo) %>%
+  ggplot(mapping = aes(x = fraction, y = ClustCoef)) +
+  geom_point(alpha = 1/2) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(limits = c(0,1)) +
+  geom_smooth(method = "loess") +
+  facet_grid(category~., labeller = labeller(category = sentiment_labs)) +
+  labs(x = "% of Word Category in Subreddit", y = "Clustering Coefficient",
+       title = "Positive & Negative Sentiment vs. Clustering Coefficient") 
+  
+```
+
+The straight line of the LOESS smoother indicates the relationship
+between sentiment and clustering coefficient is weak. However, we can confirm
+this by inspecting the output from regressions of positive and negative 
+sentiment onto clustering coefficient. 
+
+###Regression of Positive Sentiment onto Network Variables 
+```{r}
+(pos.lm.fit <- summary(lm(posemo ~ DegCent + CloseCent + ClustCoef, data = df)))
+```
+
+There is a weak, yet highly significant relationship between positive 
+sentiment and closeness centrality that implies a 1 unit increase in 
+closeness centrality is associated with a 
+`r pos.lm.fit$coefficients["CloseCent", "Estimate"]`
+unit change in positive sentiment. Further, we also observe a significant
+relationship with unweighted clustering coefficient that suggests a 1% increase
+in clustering coefficient is associated with a 
+`r pos.lm.fit$coefficients["ClustCoef", "Estimate"]`
+unit change in positive sentiment. 
+
+###Regression of Negative Sentiment onto Network Variables 
+```{r}
+(neg.lm.fit <- summary(lm(negemo ~ DegCent + CloseCent + ClustCoef, data = df)))
+```
+
+Only degree centrality as a significant positive relationship with negative 
+sentiment such that a 1 unit change in degree centrality is associated with
+a `r neg.lm.fit$coefficients["DegCent", "Estimate"]` unit change in negative sentiment. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# # Classify subreddit as NSFW
+# patterns = c("porn","gw","gonewild","tits","boob", "penis", "boner", "bbw",
+#              "wifesharing", "nipple", )
+# liwc_df_long %>%
+#   mutate(is_nsfw = any(patterns %in% str_to_lower(subreddit)))
+# sapply(test.data$item, function(x) any(sapply(fruit, str_detect, string = x)))
+# 
+# 
+# str detect() 
+```
+
+
+```{r}
+# url_data <- "http://redditlist.com/nsfw"
+# 
+# a <- url_data %>%
+#   read_html() %>%
+#   html_nodes(xpath='//*[@id="listing-parent"]/div[1]') %>%
+#   html_table()
+# 
+# 
+# # url_data <- "https://www.reddit.com/r/ListOfSubreddits/wiki/nsfw"
+# 
+# a <- url_data %>%
+#   read_html() %>% 
+#   html_nodes(xpath = '//*[@id="page"]/div[3]') %>% 
+#   html_text() %>%
+#   str_replace_all("\n", "") %>%
+#   str_replace_all("\t", "") %>%
+#   str_replace_all(" ", "") %>%
+#   str_replace_all("[0-9]+i","")
+# 
+# pattern = c("subreddit")
+# 
+# substring="[Ss]ubreddit|[Ff]irst|[Rr]ecent|[Ll]ast|sinfopanelformoreoptions"
+# 
+# url_data <- "http://redditlist.com/all"
+# selector_copy <- "#listing-parent > div.span4.listing.active-listing"
+# 
+# url_data %>%
+#   read_html() %>% 
+#   html_nodes(css = selector_copy) %>%
+#   html_text()
+# 
+# xpath_copy <- '//*[@id="listing-parent"]/div[1]'
+# url_data %>%
+#   read_html() %>% 
+#   html_nodes(xpath = xpath_copy) %>%
+#   html_text()
+# 
+# nsfw_subs <- 
+#   url_data %>%
+#   read_html() %>% 
+#   html_nodes(xpath = '//*[@id="page"]/div[3]') %>% 
+#   html_text() %>%
+#   str_replace_all("\n", "") %>%
+#   str_replace_all("\t", "") %>%
+#   str_trim()
+#   # str_replace_all("\s", "") %>%
+#   str_replace_all("[0-9]+i","") %>%
+#   str_extract_all("[a-zA-Z]+") %>%
+#   unlist() %>%
+#   map(~ifelse(grepl(substring,.x), NA, .x)) %>%
+#   unlist() %>%
+#   .[!is.na(.)] %>%
+#   unique()
+#   c()
+# 
+# 
+#   html_table() %>% 
+#   select(
+#     from = From,
+#     to = To,
+#     name = Name,
+#     sex = Sex,
+#     birthdate = Lifespan
+#   )
+# ```
+# 
+# 
+# ```{r}
+# liwc_df_wide %>%
+#   sample_n(100) %>%
+#   ggplot(mapping = aes(x = posemo, y = swear)) +
+#   geom_point() +
+#   geom_text_repel(mapping = aes(label = subreddit)) + 
+#   scale_x_log10() +
+#   scale_y_log10()
+# ```
+# 
+# 
+# #Clustering 
+# 
+# We perform hierarchical clustering to observe which LIWC features
+# are most significantly related to each other. 
+# 
+# Run hierarchical clustering algorithm: 
+# ```{r}
+# # clust <- pvclust(liwc_df_wide %>% select(-subreddit))
+# clust <- read_rds("../../output/liwc_hierarchical_clust.rds")
+# ```
+# 
+# Plot dendrogram:
+# ```{r, fig.height=7, fig.width=10}
+# plot(clust)
+# pvrect(clust, alpha=0.95)
+# ```
+# 
+# The `sexual` and `negemo` variables are clustered tightly together,
+# suggesting a linear relationship may be present. This is visualized below:
+# ```{r}
+# liwc_df_wide %>%
+#   ggplot(mapping = aes(x = sexual, y = posemo)) +
+#   geom_point() +
+#   scale_x_log10(labels = scales::percent) +
+#   scale_y_log10(labels = scales::percent) +
+#   geom_smooth(method = "loess")
+```
+
+```{r}
+# library(cluster)
+# clusGap(liwc_df_wide %>% select(-subreddit), kmeans, 10, B = 100, verbose = interactive())
+```
+
+```{r}
+# k.means.fit <- kmeans(liwc_df_wide %>% select(-subreddit), 4)
+# 
+# clusplot(liwc_df_wide %>% select(-subreddit), k.means.fit$cluster, main='2D representation of the Cluster solution', color=TRUE, shade=TRUE, labels=2, lines=0)
+# 
+# wssplot <- function(data, nc=15, seed=1234){
+#                wss <- (nrow(data)-1)*sum(apply(data,2,var))
+#                for (i in 2:nc){
+#                     set.seed(seed)
+#                     wss[i] <- sum(kmeans(data, centers=i)$withinss)}
+#                 plot(1:nc, wss, type="b", xlab="Number of Clusters",
+#                      ylab="Within groups sum of squares")}
+```
+
