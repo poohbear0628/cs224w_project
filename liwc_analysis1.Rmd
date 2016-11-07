@@ -181,70 +181,9 @@ Only degree centrality as a significant positive relationship with negative
 sentiment such that a 1 unit change in degree centrality is associated with
 a `r neg.lm.fit$coefficients["DegCent", "Estimate"]` unit change in negative sentiment. 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 ```{r}
-# # Classify subreddit as NSFW
-# patterns = c("porn","gw","gonewild","tits","boob", "penis", "boner", "bbw",
-#              "wifesharing", "nipple", )
-# liwc_df_long %>%
-#   mutate(is_nsfw = any(patterns %in% str_to_lower(subreddit)))
-# sapply(test.data$item, function(x) any(sapply(fruit, str_detect, string = x)))
-# 
-# 
-# str detect() 
-```
-
-
-```{r}
+# SCRAPE NSFW SUBREDDITS FROM WEB
 # url_data <- "http://redditlist.com/nsfw"
-# 
-# a <- url_data %>%
-#   read_html() %>%
-#   html_nodes(xpath='//*[@id="listing-parent"]/div[1]') %>%
-#   html_table()
-# 
-# 
-# # url_data <- "https://www.reddit.com/r/ListOfSubreddits/wiki/nsfw"
-# 
-# a <- url_data %>%
-#   read_html() %>% 
-#   html_nodes(xpath = '//*[@id="page"]/div[3]') %>% 
-#   html_text() %>%
-#   str_replace_all("\n", "") %>%
-#   str_replace_all("\t", "") %>%
-#   str_replace_all(" ", "") %>%
-#   str_replace_all("[0-9]+i","")
-# 
-# pattern = c("subreddit")
-# 
-# substring="[Ss]ubreddit|[Ff]irst|[Rr]ecent|[Ll]ast|sinfopanelformoreoptions"
-# 
-# url_data <- "http://redditlist.com/all"
-# selector_copy <- "#listing-parent > div.span4.listing.active-listing"
-# 
-# url_data %>%
-#   read_html() %>% 
-#   html_nodes(css = selector_copy) %>%
-#   html_text()
-# 
-# xpath_copy <- '//*[@id="listing-parent"]/div[1]'
-# url_data %>%
-#   read_html() %>% 
-#   html_nodes(xpath = xpath_copy) %>%
-#   html_text()
-# 
 # nsfw_subs <- 
 #   url_data %>%
 #   read_html() %>% 
@@ -263,30 +202,7 @@ a `r neg.lm.fit$coefficients["DegCent", "Estimate"]` unit change in negative sen
 #   unique()
 #   c()
 # 
-# 
-#   html_table() %>% 
-#   select(
-#     from = From,
-#     to = To,
-#     name = Name,
-#     sex = Sex,
-#     birthdate = Lifespan
-#   )
-# ```
-# 
-# 
-# ```{r}
-# liwc_df_wide %>%
-#   sample_n(100) %>%
-#   ggplot(mapping = aes(x = posemo, y = swear)) +
-#   geom_point() +
-#   geom_text_repel(mapping = aes(label = subreddit)) + 
-#   scale_x_log10() +
-#   scale_y_log10()
-# ```
-# 
-# 
-# #Clustering 
+# #HIERARCHICAL CLUSTERING  
 # 
 # We perform hierarchical clustering to observe which LIWC features
 # are most significantly related to each other. 
@@ -312,24 +228,8 @@ a `r neg.lm.fit$coefficients["DegCent", "Estimate"]` unit change in negative sen
 #   scale_x_log10(labels = scales::percent) +
 #   scale_y_log10(labels = scales::percent) +
 #   geom_smooth(method = "loess")
-```
 
-```{r}
+# KMEANS CLUSTERING 
 # library(cluster)
-# clusGap(liwc_df_wide %>% select(-subreddit), kmeans, 10, B = 100, verbose = interactive())
+# clusGap(df %>% select(-subreddit), kmeans, 10, B = 100, verbose = interactive())
 ```
-
-```{r}
-# k.means.fit <- kmeans(liwc_df_wide %>% select(-subreddit), 4)
-# 
-# clusplot(liwc_df_wide %>% select(-subreddit), k.means.fit$cluster, main='2D representation of the Cluster solution', color=TRUE, shade=TRUE, labels=2, lines=0)
-# 
-# wssplot <- function(data, nc=15, seed=1234){
-#                wss <- (nrow(data)-1)*sum(apply(data,2,var))
-#                for (i in 2:nc){
-#                     set.seed(seed)
-#                     wss[i] <- sum(kmeans(data, centers=i)$withinss)}
-#                 plot(1:nc, wss, type="b", xlab="Number of Clusters",
-#                      ylab="Within groups sum of squares")}
-```
-
