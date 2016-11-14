@@ -1,0 +1,47 @@
+---
+title: "Clustering Coefficient Analysis"
+author: "Samuel Hansen"
+output: github_document
+---
+```{r, warning=FALSE, message=FALSE, echo = FALSE}
+# Initialize libraries 
+library(tidyverse)
+
+# Initialize input files
+coef_file_in <- "data/weightedClusteringCoefficients.csv"
+liwc_file_in <- "data/liwc_data.tsv"
+
+# Read in datasets
+df <- 
+  read_tsv(liwc_file_in, col_names = FALSE) %>%
+  plyr::rename(replace = c("X1" = "subreddit", "X2" = "category", "X3" = "fraction")) %>%
+  spread(category, fraction) %>%
+  # Impute missing values with column medians 
+  dmap_at(colnames(.), ~ifelse(is.na(.x), median(.x, na.rm = T), .x)) %>%
+  # Merge with clustering coefficient data  
+  left_join(read_csv(coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
+  plyr::rename(replace = c("Clustering_Coefficients" = "clust_coef", "Log_Clustering_Coefficients" = "log_clust_coef")) 
+```
+
+#What is the relationship between clustering coefficient and negative sentiment? 
+
+We can examine whether a relationship exists between the weighted clustering
+coefficient and negative sentiment by examining the following plot and 
+inspecting a linear regression analysis. 
+```{r}
+df %>%
+  ggplot(mapping = aes(x = clust_coef, y = posemo)) +
+  geom_point() +
+  geom_smooth(method = "loess") +
+  labs(x = "Weighted Clustering Coefficient", 
+       y = "Negative Emotion Score",
+       title = "Clustering Coefficient vs. Negative Sentiment") 
+```
+
+```{r}
+lm.fit <- lm(negemo ~ clust_coef, data = df)
+summary(lm.fit)
+```
+
+There appears to be a weak, yet statistically significant relationship
+between clustering coefficient and negative sentiment. 
