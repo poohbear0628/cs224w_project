@@ -11,8 +11,8 @@ Complete Graph
 We can examine whether a relationship exists between the weighted clustering coefficient and negative sentiment by examining the following plot and inspecting a linear regression analysis.
 
 ``` r
-complete_top_10_df %>%
-  ggplot(mapping = aes(x = clust_coef, y = posemo)) +
+df %>%
+  ggplot(mapping = aes(x = complete_clust_coef, y = posemo)) +
   geom_point() +
   geom_smooth(method = "loess") +
   labs(x = "Weighted Clustering Coefficient", 
@@ -20,29 +20,25 @@ complete_top_10_df %>%
        title = "Complete Graph: \nClustering Coefficient vs. Negative Sentiment") 
 ```
 
-    ## Warning: Removed 7 rows containing non-finite values (stat_smooth).
-
-    ## Warning: Removed 7 rows containing missing values (geom_point).
-
 ![](clust_coef_analysis_files/figure-markdown_github/unnamed-chunk-2-1.png)
 
 ``` r
-lm.fit <- lm(negemo ~ clust_coef, data = complete_df)
+lm.fit <- lm(negemo ~ complete_clust_coef, data = df)
 summary(lm.fit)
 ```
 
     ## 
     ## Call:
-    ## lm(formula = negemo ~ clust_coef, data = complete_df)
+    ## lm(formula = negemo ~ complete_clust_coef, data = df)
     ## 
     ## Residuals:
     ##       Min        1Q    Median        3Q       Max 
     ## -0.015161 -0.004759 -0.000667  0.003979  0.110055 
     ## 
     ## Coefficients:
-    ##               Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)  0.0193548  0.0007355  26.316   <2e-16 ***
-    ## clust_coef  -0.0001874  0.0010487  -0.179    0.858    
+    ##                       Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)          0.0193548  0.0007355  26.316   <2e-16 ***
+    ## complete_clust_coef -0.0001874  0.0010487  -0.179    0.858    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
@@ -58,8 +54,8 @@ Complete Graph Filtered to Top 10% of Edge Weights
 We can examine whether a relationship exists between the weighted clustering coefficient and negative sentiment by examining the following plot and inspecting a linear regression analysis.
 
 ``` r
-complete_top_10_df %>%
-  ggplot(mapping = aes(x = clust_coef, y = posemo)) +
+df %>%
+  ggplot(mapping = aes(x = complete_top10_clust_coef, y = posemo)) +
   geom_point() +
   geom_smooth(method = "loess") +
   labs(x = "Weighted Clustering Coefficient", 
@@ -74,22 +70,22 @@ complete_top_10_df %>%
 ![](clust_coef_analysis_files/figure-markdown_github/unnamed-chunk-4-1.png)
 
 ``` r
-lm.fit <- lm(negemo ~ clust_coef, data = complete_top_10_df)
+lm.fit <- lm(negemo ~ complete_top10_clust_coef, data = df)
 summary(lm.fit)
 ```
 
     ## 
     ## Call:
-    ## lm(formula = negemo ~ clust_coef, data = complete_top_10_df)
+    ## lm(formula = negemo ~ complete_top10_clust_coef, data = df)
     ## 
     ## Residuals:
     ##       Min        1Q    Median        3Q       Max 
     ## -0.015462 -0.004725 -0.000644  0.003963  0.109668 
     ## 
     ## Coefficients:
-    ##               Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)  0.0202158  0.0004896  41.287   <2e-16 ***
-    ## clust_coef  -0.0019582  0.0009336  -2.097   0.0361 *  
+    ##                             Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)                0.0202158  0.0004896  41.287   <2e-16 ***
+    ## complete_top10_clust_coef -0.0019582  0.0009336  -2.097   0.0361 *  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
