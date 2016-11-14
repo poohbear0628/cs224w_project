@@ -14,26 +14,24 @@ complete_top10_coef_file_in <- "WeightedClusteringCoefficient_CompleteGraphTop10
 complete_coef_file_in <- "WeightedClusteringCoefficient_CompleteGraph/weightedClusteringCoefficients.csv"
 liwc_file_in <- "data/liwc_data.tsv"
 
-# Read in datasets
-liwc_df <- 
+df <-
+  # Read in LIWC data 
   read_tsv(liwc_file_in, col_names = FALSE) %>%
   plyr::rename(replace = c("X1" = "subreddit", "X2" = "category", "X3" = "fraction")) %>%
   spread(category, fraction) %>%
+  
   # Impute missing values with column medians 
-  dmap_at(colnames(.), ~ifelse(is.na(.x), median(.x, na.rm = T), .x)) 
-
-# Make dataset with complete graph clustering coefficients 
-complete_df <-
-  liwc_df %>%
-  # Merge with clustering coefficient data  
+  dmap_at(colnames(.), ~ifelse(is.na(.x), median(.x, na.rm = T), .x))  %>%
+  
+  # Merge with complete graph data 
   left_join(read_csv(complete_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
-  plyr::rename(replace = c("Clustering_Coefficients" = "clust_coef", "Log_Clustering_Coefficients" = "log_clust_coef")) 
-# Make dataset with top10% complete graph clustering coefficients 
-complete_top_10_df <-
-  liwc_df %>%
-  # Merge with clustering coefficient data  
+  plyr::rename(replace = c("Clustering_Coefficients" = "complete_clust_coef", 
+                           "Log_Clustering_Coefficients" = "complete_log_clust_coef")) %>%
+  
+  # Merge with complete top 10% graph data 
   left_join(read_csv(complete_top10_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
-  plyr::rename(replace = c("Clustering_Coefficients" = "clust_coef", "Log_Clustering_Coefficients" = "log_clust_coef")) 
+  plyr::rename(replace = c("Clustering_Coefficients" = "complete_top10_clust_coef", 
+                           "Log_Clustering_Coefficients" = "complete_top10_log_clust_coef"))
 ```
 
 #What is the relationship between clustering coefficient and negative sentiment? 
@@ -44,8 +42,8 @@ We can examine whether a relationship exists between the weighted clustering
 coefficient and negative sentiment by examining the following plot and 
 inspecting a linear regression analysis. 
 ```{r}
-complete_top_10_df %>%
-  ggplot(mapping = aes(x = clust_coef, y = posemo)) +
+df %>%
+  ggplot(mapping = aes(x = complete_clust_coef, y = posemo)) +
   geom_point() +
   geom_smooth(method = "loess") +
   labs(x = "Weighted Clustering Coefficient", 
@@ -54,7 +52,7 @@ complete_top_10_df %>%
 ```
 
 ```{r}
-lm.fit <- lm(negemo ~ clust_coef, data = complete_df)
+lm.fit <- lm(negemo ~ complete_clust_coef, data = df)
 summary(lm.fit)
 ```
 
@@ -67,8 +65,8 @@ We can examine whether a relationship exists between the weighted clustering
 coefficient and negative sentiment by examining the following plot and 
 inspecting a linear regression analysis. 
 ```{r}
-complete_top_10_df %>%
-  ggplot(mapping = aes(x = clust_coef, y = posemo)) +
+df %>%
+  ggplot(mapping = aes(x = complete_top10_clust_coef, y = posemo)) +
   geom_point() +
   geom_smooth(method = "loess") +
   labs(x = "Weighted Clustering Coefficient", 
@@ -77,7 +75,7 @@ complete_top_10_df %>%
 ```
 
 ```{r}
-lm.fit <- lm(negemo ~ clust_coef, data = complete_top_10_df)
+lm.fit <- lm(negemo ~ complete_top10_clust_coef, data = df)
 summary(lm.fit)
 ```
 
