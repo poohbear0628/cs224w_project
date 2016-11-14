@@ -1,8 +1,0 @@
-(dp1
-S'rotmgtradingpost'
-p2
-F0.12267657992600001
-sS'Terraria'
-p3
-F0.010133765707299999
-s.

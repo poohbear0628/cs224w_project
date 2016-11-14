@@ -1,8 +1,9 @@
-import cPickle
+import cPickle, definePath
 
-edgeListFile = "reddit-0.07.txt"
-degreeCountFile = "degreeCount.p"
-bracketWFile = "bracketW.p"
+directories = definePath.definePaths()
+edgeListFile = directories["edgeListFile"]
+degreeCountFile = directories["degreeCountFile"]
+bracketWFile = directories["bracketWFile"]
 
 bracketW = {}
 counter = 0

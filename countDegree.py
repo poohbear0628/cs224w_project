@@ -1,7 +1,8 @@
-import cPickle
+import definePath, cPickle
 
-edgeListFile = "reddit-0.07.txt"
-degreeCountFile = "degreeCount.p"
+directories = definePath.definePaths()
+edgeListFile = directories["edgeListFile"]
+degreeCountFile = directories["degreeCountFile"]
 
 degreeCount = {}
 counter = 0

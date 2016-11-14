@@ -1,6 +1,7 @@
-import cPickle
+import cPickle, definePath
 
-clusteringCoefficientFile = "clusteringCoefficient.p"
+directories = definePath.definePaths()
+clusteringCoefficientFile = directories["clusteringCoefficientFile"]
 
 clusteringCoefficients = cPickle.load(open(clusteringCoefficientFile, "rb"))
 
