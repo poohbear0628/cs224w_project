@@ -1,0 +1,11 @@
+(dp1
+S'bourbon'
+p2
+F0.018052578133799999
+sS'cincinnati'
+p3
+F0.0098850858766799995
+sS'CollegeBasketball'
+p4
+F0.0126106894371
+s.

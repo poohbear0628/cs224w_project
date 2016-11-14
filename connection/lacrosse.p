@@ -1,0 +1,5 @@
+(dp1
+S'DippingTobacco'
+p2
+F0.0076943844492399997
+s.

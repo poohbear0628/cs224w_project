@@ -1,0 +1,11 @@
+(dp1
+S'migraine'
+p2
+F0.013840830449799999
+sS'ChronicPain'
+p3
+F0.076819859107700006
+sS'bigboobproblems'
+p4
+F0.0079756931257100004
+s.

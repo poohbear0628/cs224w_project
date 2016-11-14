@@ -1,0 +1,14 @@
+(dp1
+S'milwaukee'
+p2
+F0.023918499926200001
+sS'GreenBayPackers'
+p3
+F0.0266968006215
+sS'wisconsin'
+p4
+F0.101763299462
+sS'CollegeBasketball'
+p5
+F0.0072055137844599998
+s.

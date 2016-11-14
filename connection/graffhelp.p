@@ -1,0 +1,14 @@
+(dp1
+S'Bombing'
+p2
+F0.14192424902
+sS'NewSkaters'
+p3
+F0.0096867936712900001
+sS'Graffiti'
+p4
+F0.0706490522688
+sS'stencils'
+p5
+F0.023629203271700001
+s.

@@ -1,0 +1,17 @@
+(dp1
+S'exmormon'
+p2
+F0.042137584111799999
+sS'snowboarding'
+p3
+F0.00738050609185
+sS'mormon'
+p4
+F0.0238330046022
+sS'latterdaysaints'
+p5
+F0.031450936539000003
+sS'skiing'
+p6
+F0.0098593591416599995
+s.

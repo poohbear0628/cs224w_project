@@ -1,0 +1,17 @@
+(dp1
+S'Standup'
+p2
+F0.0073997336095900004
+sS'JoeRogan'
+p3
+F0.011091158762
+sS'StandUpComedy'
+p4
+F0.0103526734926
+sS'howardstern'
+p5
+F0.015110110914599999
+sS'opieandanthony'
+p6
+F0.13184012875500001
+s.

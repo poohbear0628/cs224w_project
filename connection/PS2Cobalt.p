@@ -1,0 +1,11 @@
+(dp1
+S'MillerPlanetside'
+p2
+F0.077997111218100004
+sS'Planetside'
+p3
+F0.041787076638500002
+sS'Briggs'
+p4
+F0.022923875432500001
+s.

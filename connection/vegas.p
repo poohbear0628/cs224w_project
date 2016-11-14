@@ -1,0 +1,14 @@
+(dp1
+S'sportsbook'
+p2
+F0.0077177508268999996
+sS'poker'
+p3
+F0.0107017275646
+sS'LosAngeles'
+p4
+F0.0073441046868699998
+sS'Disneyland'
+p5
+F0.0082288897328799994
+s.

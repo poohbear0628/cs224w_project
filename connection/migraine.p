@@ -1,0 +1,17 @@
+(dp1
+S'ChronicPain'
+p2
+F0.0294347486325
+sS'TheGirlSurvivalGuide'
+p3
+F0.0073716319267899998
+sS'Fibromyalgia'
+p4
+F0.013840830449799999
+sS'Pets'
+p5
+F0.0072999361255599998
+sS'glutenfree'
+p6
+F0.0089219330854999994
+s.
