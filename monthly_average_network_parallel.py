@@ -10,7 +10,7 @@ if windows:
     directory = "D:\\224w\\project\\month_user_data"
 else:
     directory = "/afs/.ir/users/v/i/vinwoo/224w/month_user_data"
-# file path to where the edge list is saved
+# file subredditData to where the edge list is saved
 if windows:
     destination_file = "D:\\224w\\project\\cs224w_project\\data\\reddit-monthly-average-complete-parallel.txt"
 else:

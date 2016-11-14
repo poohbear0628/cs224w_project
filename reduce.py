@@ -1,6 +1,6 @@
 # AUTHOR: Samuel Hansen
 # ABOUT: Accepts a sorted stdout output containing the user, subreddit, month
-# performed by python map.py | sort. Returns a dictionary with each user mapped 
+# performed by python generateUserCommentHistory.py | sort. Returns a dictionary with each user mapped
 # to tuples of the subreddits and months they commented in, for example: 
 # {user1 : set((subreddit1, month1), (subreddit2, month1),
 #  user2 : set((subreddit3, month3), (subreddit4, month1))}
