@@ -5,7 +5,7 @@ import math
 
 # the directory where all the monthly user data is stored
 directory = "D:\\224w\\project\\month_user_data"
-# file path to where the edge list is saved
+# file subredditData to where the edge list is saved
 destination_file = "D:\\224w\\project\\reddit.txt"
 # minimum threshold of an edge weight for the edge to exist
 # set to 0 to get all edges

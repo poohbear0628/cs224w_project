@@ -11,4 +11,7 @@ def definePaths():
     directories["connectionMapDirectory"] = directory + "connection/"
     directories["pickleFileExtension"] = ".p"
     directories["weightedClusteringCoefficients"] = directory + "weightedClusteringCoefficients.csv"
+    directories["commonDirectory"] = "data"
+    directories["monthlyUserDataDirectory"] = "month_user_data"
+    directories["userCommentHistoryDirectory"] = "user_comment_history"
     return directories
