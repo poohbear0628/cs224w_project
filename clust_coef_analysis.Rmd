@@ -45,3 +45,19 @@ summary(lm.fit)
 
 There appears to be a weak, yet statistically significant relationship
 between clustering coefficient and negative sentiment. 
+
+```{r}
+df <-
+  df %>%
+  mutate(quartile = ifelse(clust_coef <= quantile(clust_coef, prob = .25, na.rm = T), 
+                           "bottom_25",
+                           ifelse(clust_coef >= quantile(clust_coef, prob = .75, na.rm = T), 
+                                  "top_25", "middle")))
+df %>%
+  filter(quartile != "middle") %>%
+  ggplot(mapping = aes(x = quartile, y = negemo)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Weighted Clustering Coefficient Quartile",
+       y = "Negative Sentiment Score",
+       title = "Negative Sentiment vs. Top & Bottom Clustering Coefficient Quartiles")
+```
