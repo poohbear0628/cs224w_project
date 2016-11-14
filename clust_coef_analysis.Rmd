@@ -8,38 +8,76 @@ output: github_document
 library(tidyverse)
 
 # Initialize input files
-coef_file_in <- "data/weightedClusteringCoefficients.csv"
+# avg_top10_coef_file_in <- "WeightedClusteringCoefficient_MonthlyAverageTop10/weightedClusteringCoefficients.csv"
+# avg_coef_file_in <- "WeightedClusteringCoefficient_MonthlyAverage/weightedClusteringCoefficients.csv"
+complete_top10_coef_file_in <- "WeightedClusteringCoefficient_CompleteGraphTop10/weightedClusteringCoefficients.csv"
+complete_coef_file_in <- "WeightedClusteringCoefficient_CompleteGraph/weightedClusteringCoefficients.csv"
 liwc_file_in <- "data/liwc_data.tsv"
 
 # Read in datasets
-df <- 
+liwc_df <- 
   read_tsv(liwc_file_in, col_names = FALSE) %>%
   plyr::rename(replace = c("X1" = "subreddit", "X2" = "category", "X3" = "fraction")) %>%
   spread(category, fraction) %>%
   # Impute missing values with column medians 
-  dmap_at(colnames(.), ~ifelse(is.na(.x), median(.x, na.rm = T), .x)) %>%
+  dmap_at(colnames(.), ~ifelse(is.na(.x), median(.x, na.rm = T), .x)) 
+
+# Make dataset with complete graph clustering coefficients 
+complete_df <-
+  liwc_df %>%
   # Merge with clustering coefficient data  
-  left_join(read_csv(coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
+  left_join(read_csv(complete_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
+  plyr::rename(replace = c("Clustering_Coefficients" = "clust_coef", "Log_Clustering_Coefficients" = "log_clust_coef")) 
+# Make dataset with top10% complete graph clustering coefficients 
+complete_top_10_df <-
+  liwc_df %>%
+  # Merge with clustering coefficient data  
+  left_join(read_csv(complete_top10_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
   plyr::rename(replace = c("Clustering_Coefficients" = "clust_coef", "Log_Clustering_Coefficients" = "log_clust_coef")) 
 ```
 
 #What is the relationship between clustering coefficient and negative sentiment? 
 
+##Complete Graph 
+
 We can examine whether a relationship exists between the weighted clustering
 coefficient and negative sentiment by examining the following plot and 
 inspecting a linear regression analysis. 
 ```{r}
-df %>%
+complete_top_10_df %>%
   ggplot(mapping = aes(x = clust_coef, y = posemo)) +
   geom_point() +
   geom_smooth(method = "loess") +
   labs(x = "Weighted Clustering Coefficient", 
        y = "Negative Emotion Score",
-       title = "Clustering Coefficient vs. Negative Sentiment") 
+       title = "Complete Graph: \nClustering Coefficient vs. Negative Sentiment") 
 ```
 
 ```{r}
-lm.fit <- lm(negemo ~ clust_coef, data = df)
+lm.fit <- lm(negemo ~ clust_coef, data = complete_df)
+summary(lm.fit)
+```
+
+There appears to be a **no** statistically significant relationship
+between clustering coefficient and negative sentiment. 
+
+##Complete Graph Filtered to Top 10% of Edge Weights 
+
+We can examine whether a relationship exists between the weighted clustering
+coefficient and negative sentiment by examining the following plot and 
+inspecting a linear regression analysis. 
+```{r}
+complete_top_10_df %>%
+  ggplot(mapping = aes(x = clust_coef, y = posemo)) +
+  geom_point() +
+  geom_smooth(method = "loess") +
+  labs(x = "Weighted Clustering Coefficient", 
+       y = "Negative Emotion Score",
+       title = "Complete Top 10% Graph: \nClustering Coefficient vs. Negative Sentiment") 
+```
+
+```{r}
+lm.fit <- lm(negemo ~ clust_coef, data = complete_top_10_df)
 summary(lm.fit)
 ```
 
@@ -47,17 +85,18 @@ There appears to be a weak, yet statistically significant relationship
 between clustering coefficient and negative sentiment. 
 
 ```{r}
-df <-
-  df %>%
-  mutate(quartile = ifelse(clust_coef <= quantile(clust_coef, prob = .25, na.rm = T), 
-                           "bottom_25",
-                           ifelse(clust_coef >= quantile(clust_coef, prob = .75, na.rm = T), 
-                                  "top_25", "middle")))
-df %>%
-  filter(quartile != "middle") %>%
-  ggplot(mapping = aes(x = quartile, y = negemo)) +
-  geom_bar(stat = "identity") +
-  labs(x = "Weighted Clustering Coefficient Quartile",
-       y = "Negative Sentiment Score",
-       title = "Negative Sentiment vs. Top & Bottom Clustering Coefficient Quartiles")
+# IGNORE THIS CODE FOR NOW 
+# df <-
+#   df %>%
+#   mutate(quartile = ifelse(clust_coef <= quantile(clust_coef, prob = .25, na.rm = T), 
+#                            "bottom_25",
+#                            ifelse(clust_coef >= quantile(clust_coef, prob = .75, na.rm = T), 
+#                                   "top_25", "middle")))
+# df %>%
+#   filter(quartile != "middle") %>%
+#   ggplot(mapping = aes(x = quartile, y = negemo)) +
+#   geom_bar(stat = "identity") +
+#   labs(x = "Weighted Clustering Coefficient Quartile",
+#        y = "Negative Sentiment Score",
+#        title = "Negative Sentiment vs. Top & Bottom Clustering Coefficient Quartiles")
 ```
