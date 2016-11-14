@@ -1,7 +1,8 @@
-import cPickle
+import cPickle, definePath
 
-degreeCountFile = "degreeCount.p"
-subRedditsListFile = "subredditList.p"
+directories = definePath.definePaths()
+degreeCountFile = directories["degreeCountFile"]
+subRedditsListFile = directories["subRedditsListFile"]
 
 degreeCount = cPickle.load(open(degreeCountFile, "rb"))
 

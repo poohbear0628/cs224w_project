@@ -1,14 +1,15 @@
-import cPickle, math
+import cPickle, math, definePath
 
-edgeListFile = "reddit-0.07.txt"
-degreeCountFile = "degreeCount.p"
-bracketWFile = "bracketW.p"
-subRedditsListFile = "subredditList.p"
-clusteringCoefficientFile = "clusteringCoefficient.p"
-logClusteringCoefficientFile = "logClusteringCoefficient.p"
-degreeOneNodesFile = "degreeOneNodes.p"
-connectionMapDirectory = "connection/"
-pickleFileExtension = ".p"
+directories = definePath.definePaths()
+edgeListFile = directories["edgeListFile"]
+degreeCountFile = directories["degreeCountFile"]
+bracketWFile = directories["bracketWFile"]
+subRedditsListFile = directories["subRedditsListFile"]
+clusteringCoefficientFile = directories["clusteringCoefficientFile"]
+logClusteringCoefficientFile = directories["logClusteringCoefficientFile"]
+degreeOneNodesFile = directories["degreeOneNodesFile"]
+connectionMapDirectory = directories["connectionMapDirectory"]
+pickleFileExtension = directories["pickleFileExtension"]
 
 bracketW = cPickle.load(open(bracketWFile, "rb"))
 degreeCount = cPickle.load(open(degreeCountFile, "rb"))
@@ -32,18 +33,14 @@ for subreddit in subRedditsList:
                 items = line.split()
                 if len(items) == 3:
                     if items[0] in connectionMap_subReddit and items[1] in connectionMap_subReddit:
-                        additionResult = additionResult + \
-                                         0.5 * (connectionMap_subReddit[items[0]] + connectionMap_subReddit[items[1]])
+                        additionResult += (connectionMap_subReddit[items[0]] + connectionMap_subReddit[items[1]]) / bracketW[subreddit]
         if additionResult == 0:
             logClusteringCoefficients[subreddit] = float("-inf")
             clusteringCoefficients[subreddit] = 0.0
         else:
-            logClusteringCoefficients[subreddit] = -math.log(degreeCount[subreddit]) \
-                                                   - math.log(degreeCount[subreddit] - 1) \
-                                                   - math.log(bracketW[subreddit]) \
-                                                   + math.log(additionResult)
-            clusteringCoefficients[subreddit] = math.exp(logClusteringCoefficients[subreddit])
-    counter = counter + 1
+            clusteringCoefficients[subreddit] = additionResult / (degreeCount[subreddit]) / (degreeCount[subreddit] - 1)
+            logClusteringCoefficients[subreddit] = math.log(clusteringCoefficients[subreddit])
+    counter += 1
     print counter, subreddit, logClusteringCoefficients[subreddit], clusteringCoefficients[subreddit]
 
 cPickle.dump(degreeOneNodes, open(degreeOneNodesFile, "wb"))

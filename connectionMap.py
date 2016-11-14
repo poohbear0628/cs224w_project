@@ -1,9 +1,10 @@
-import cPickle, random
+import cPickle, definePath
 
-edgeListFile = "reddit-0.07.txt"
-connectionMapDirectory = "connection/"
-subRedditsListFile = "subredditList.p"
-pickleFileExtension = ".p"
+directories = definePath.definePaths()
+edgeListFile = directories["edgeListFile"]
+connectionMapDirectory = directories["connectionMapDirectory"]
+subRedditsListFile = directories["subRedditsListFile"]
+pickleFileExtension = directories["pickleFileExtension"]
 
 subReddits = cPickle.load(open(subRedditsListFile, "rb"))
 
@@ -17,7 +18,10 @@ for subReddit in subReddits:
             items = line.split()
             if len(items) == 3:
                 if items[0] == subReddit:
+                    assert items[1] not in connectionMap
                     connectionMap[items[1]] = float(items[2])
                 elif items[1] == subReddit:
+                    assert items[0] not in connectionMap
                     connectionMap[items[0]] = float(items[2])
+    assert subReddit not in connectionMap
     cPickle.dump(connectionMap, open(connectionMapDirectory + subReddit + pickleFileExtension, "wb"))
