@@ -1,0 +1,17 @@
+(dp1
+S'canada'
+p2
+F0.021704408708
+sS'canadaguns'
+p3
+F0.0077733632751799996
+sS'metacanada'
+p4
+F0.0086802130597799995
+sS'CanadaPolitics'
+p5
+F0.0155237745997
+sS'PersonalFinanceCanada'
+p6
+F0.012010261194
+s.

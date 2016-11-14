@@ -1,0 +1,14 @@
+(dp1
+S'booksuggestions'
+p2
+F0.0071748288572899997
+sS'literature'
+p3
+F0.010181438454499999
+sS'knitting'
+p4
+F0.0074105441456700002
+sS'printSF'
+p5
+F0.0070062764559899997
+s.

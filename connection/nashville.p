@@ -1,0 +1,17 @@
+(dp1
+S'Chattanooga'
+p2
+F0.013233797081799999
+sS'audioengineering'
+p3
+F0.0072588095552299997
+sS'memphis'
+p4
+F0.0115767161259
+sS'bourbon'
+p5
+F0.0072501838814800004
+sS'bonnaroo'
+p6
+F0.019605901574399998
+s.

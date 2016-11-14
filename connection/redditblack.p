@@ -1,0 +1,14 @@
+(dp1
+S'CODZombies'
+p2
+F0.0100755667506
+sS'CallOfDuty'
+p3
+F0.0118247448345
+sS'blackops2'
+p4
+F0.022130013831300002
+sS'CoDCompetitive'
+p5
+F0.020633750921100001
+s.

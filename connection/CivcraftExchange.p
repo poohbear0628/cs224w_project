@@ -1,0 +1,17 @@
+(dp1
+S'minerapocalypse'
+p2
+F0.020811654526499999
+sS'kohi'
+p3
+F0.00787965616046
+sS'Civcraft'
+p4
+F0.20457756428400001
+sS'hcfactions'
+p5
+F0.02239863907
+sS'ShotBow'
+p6
+F0.0086611331649199992
+s.

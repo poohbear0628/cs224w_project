@@ -1,0 +1,14 @@
+(dp1
+S'FortWorth'
+p2
+F0.021085925145
+sS'TexasRangers'
+p3
+F0.0131042516016
+sS'texas'
+p4
+F0.019936034115100001
+sS'Dallas'
+p5
+F0.033861121709300002
+s.

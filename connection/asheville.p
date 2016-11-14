@@ -1,0 +1,17 @@
+(dp1
+S'Charlotte'
+p2
+F0.014867841409699999
+sS'panthers'
+p3
+F0.0089880675654699996
+sS'triangle'
+p4
+F0.0091286307053900003
+sS'raleigh'
+p5
+F0.0130043985466
+sS'NorthCarolina'
+p6
+F0.036101836393999998
+s.

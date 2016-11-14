@@ -1,0 +1,17 @@
+(dp1
+S'festivals'
+p2
+F0.0076995305164299999
+sS'Stretched'
+p3
+F0.0162439441436
+sS'gratefuldead'
+p4
+F0.0078157136980699995
+sS'piercing'
+p5
+F0.012697652132199999
+sS'entwives'
+p6
+F0.0074774576643900003
+s.

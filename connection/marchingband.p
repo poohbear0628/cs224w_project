@@ -1,0 +1,14 @@
+(dp1
+S'musictheory'
+p2
+F0.0073602794411199999
+sS'drumcorps'
+p3
+F0.095050480177300001
+sS'classicalmusic'
+p4
+F0.0086074980872200002
+sS'drums'
+p5
+F0.0084083074077200004
+s.

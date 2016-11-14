@@ -1,0 +1,14 @@
+(dp1
+S'pkmntcgtrades'
+p2
+F0.0173010380623
+sS'yugioh'
+p3
+F0.068432886890199995
+sS'pkmntcg'
+p4
+F0.0082881734140899995
+sS'YGOSales'
+p5
+F0.330407523511
+s.

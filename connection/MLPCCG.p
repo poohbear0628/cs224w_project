@@ -1,0 +1,17 @@
+(dp1
+S'ClopClop'
+p2
+F0.0076004343105299998
+sS'mylittleandysonic1'
+p3
+F0.0072655217965699997
+sS'MLPLounge'
+p4
+F0.014045402580400001
+sS'ploungeafterdark'
+p5
+F0.0125091979397
+sS'mylittlepony'
+p6
+F0.015289870460799999
+s.
