@@ -2,30 +2,28 @@ Clustering Coefficient Analysis
 ================
 Samuel Hansen
 
-What is the relationship between clustering coefficient and negative sentiment?
-===============================================================================
+Network Properties vs. Negative Sentiment
+=========================================
 
 Complete Graph
 --------------
 
-We can examine whether a relationship exists between the weighted clustering coefficient and negative sentiment by examining the following plot and inspecting a linear regression analysis.
-
-``` r
-df %>%
-  ggplot(mapping = aes(x = complete_clust_coef, y = negemo)) +
-  geom_point(alpha = 0.2) +
-  geom_smooth(method = "loess") +
-  labs(x = "Weighted Clustering Coefficient", 
-       y = "Negative Emotion Score",
-       title = "Complete Graph: \nClustering Coefficient vs. Negative Sentiment") 
-```
-
 ![](clust_coef_analysis_files/figure-markdown_github/unnamed-chunk-2-1.png)
 
-``` r
-lm.fit <- lm(negemo ~ complete_clust_coef, data = df)
-summary(lm.fit)
-```
+Complete Graph Filtered to Top 10% of Edge Weights
+--------------------------------------------------
+
+![](clust_coef_analysis_files/figure-markdown_github/unnamed-chunk-3-1.png)
+
+Clustering coefficient vs. negative sentiment
+=============================================
+
+Complete Graph
+--------------
+
+We can examine whether a relationship exists between the weighted clustering coefficient and negative sentiment by examining the following plot and inspecting a linear regression analysis. ![](clust_coef_analysis_files/figure-markdown_github/unnamed-chunk-4-1.png)
+
+### Linear Regression: Clusterting Coefficient vs. Negative Sentiment
 
     ## 
     ## Call:
@@ -51,28 +49,9 @@ There appears to be a **no** statistically significant relationship between clus
 Complete Graph Filtered to Top 10% of Edge Weights
 --------------------------------------------------
 
-We can examine whether a relationship exists between the weighted clustering coefficient and negative sentiment by examining the following plot and inspecting a linear regression analysis.
+We can examine whether a relationship exists between the weighted clustering coefficient and negative sentiment by examining the following plot and inspecting a linear regression analysis. ![](clust_coef_analysis_files/figure-markdown_github/unnamed-chunk-6-1.png)
 
-``` r
-df %>%
-  ggplot(mapping = aes(x = complete_top10_clust_coef, y = negemo)) +
-  geom_point(alpha = 0.2) +
-  geom_smooth(method = "loess") +
-  labs(x = "Weighted Clustering Coefficient", 
-       y = "Negative Emotion Score",
-       title = "Complete Top 10% Graph: \nClustering Coefficient vs. Negative Sentiment") 
-```
-
-    ## Warning: Removed 7 rows containing non-finite values (stat_smooth).
-
-    ## Warning: Removed 7 rows containing missing values (geom_point).
-
-![](clust_coef_analysis_files/figure-markdown_github/unnamed-chunk-4-1.png)
-
-``` r
-lm.fit <- lm(negemo ~ complete_top10_clust_coef, data = df)
-summary(lm.fit)
-```
+### Linear Regression: Clusterting Coefficient vs. Negative Sentiment
 
     ## 
     ## Call:
@@ -94,10 +73,9 @@ summary(lm.fit)
     ## Multiple R-squared:  0.002153,   Adjusted R-squared:  0.001664 
     ## F-statistic: 4.399 on 1 and 2039 DF,  p-value: 0.03608
 
-``` r
-loess.fit <- loess(negemo ~ complete_top10_clust_coef, data = df)
-summary(loess.fit)
-```
+There is a weak, yet statistically significant negative relationship between clustering coefficient and negative sentiment.
+
+### LOESS Regression: Clusterting Coefficient vs. Negative Sentiment
 
     ## Call:
     ## loess(formula = negemo ~ complete_top10_clust_coef, data = df)
@@ -116,35 +94,37 @@ summary(loess.fit)
     ##  parametric:  FALSE
     ## drop.square:  FALSE
 
-There appears to be a weak, yet statistically significant relationship between clustering coefficient and negative sentiment.
+What is the distribution of node strength?
+==========================================
 
-Regression of negative sentiment onto all LIWC features & Clustering Coefficient
-================================================================================
+Complete Reddit Graph
+---------------------
 
-``` r
-# complete_top10_lm.fit <- lm(negemo ~., data = df %>% 
-#      select(-c(subreddit, complete_clust_coef, complete_log_clust_coef,
-#                complete_top10_log_clust_coef)))
-# summary(complete_top10_lm.fit)
-```
+### Top 20 Subreddits by Node Strength
 
-``` r
-# IGNORE THIS CODE FOR NOW 
-df <-
-  df %>%
-  mutate(quartile = ifelse(complete_top10_clust_coef <= 
-                             quantile(complete_top10_clust_coef, prob = .25, na.rm = T),
-                           "bottom_25",
-                           ifelse(complete_top10_clust_coef >= 
-                                    quantile(complete_top10_clust_coef, prob = .75, na.rm = T),
-                                  "top_25", "middle")))
-df %>%
-  filter(quartile != "middle") %>%
-  ggplot(mapping = aes(x = quartile, y = negemo)) +
-  geom_bar(stat = "identity") +
-  labs(x = "Weighted Clustering Coefficient Quartile",
-       y = "Negative Sentiment Score",
-       title = "Negative Sentiment vs. Top & Bottom Clustering Coefficient Quartiles")
-```
+![](clust_coef_analysis_files/figure-markdown_github/unnamed-chunk-9-1.png)
 
-![](clust_coef_analysis_files/figure-markdown_github/unnamed-chunk-8-1.png)
+### Node Strength vs. Negative Sentiment
+
+![](clust_coef_analysis_files/figure-markdown_github/unnamed-chunk-10-1.png)
+
+### Linear Regression: Node Strength vs. Negative Sentiment
+
+    ## 
+    ## Call:
+    ## lm(formula = negemo ~ complete_ns, data = df)
+    ## 
+    ## Residuals:
+    ##       Min        1Q    Median        3Q       Max 
+    ## -0.015438 -0.004497 -0.000560  0.003544  0.110690 
+    ## 
+    ## Coefficients:
+    ##              Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept) 0.0145645  0.0004498   32.38   <2e-16 ***
+    ## complete_ns 0.0018877  0.0001727   10.93   <2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.006452 on 2046 degrees of freedom
+    ## Multiple R-squared:  0.05515,    Adjusted R-squared:  0.05468 
+    ## F-statistic: 119.4 on 1 and 2046 DF,  p-value: < 2.2e-16
