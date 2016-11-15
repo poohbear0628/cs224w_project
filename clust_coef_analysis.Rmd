@@ -43,8 +43,8 @@ coefficient and negative sentiment by examining the following plot and
 inspecting a linear regression analysis. 
 ```{r}
 df %>%
-  ggplot(mapping = aes(x = complete_clust_coef, y = posemo)) +
-  geom_point() +
+  ggplot(mapping = aes(x = complete_clust_coef, y = negemo)) +
+  geom_point(alpha = 0.2) +
   geom_smooth(method = "loess") +
   labs(x = "Weighted Clustering Coefficient", 
        y = "Negative Emotion Score",
@@ -66,8 +66,8 @@ coefficient and negative sentiment by examining the following plot and
 inspecting a linear regression analysis. 
 ```{r}
 df %>%
-  ggplot(mapping = aes(x = complete_top10_clust_coef, y = posemo)) +
-  geom_point() +
+  ggplot(mapping = aes(x = complete_top10_clust_coef, y = negemo)) +
+  geom_point(alpha = 0.2) +
   geom_smooth(method = "loess") +
   labs(x = "Weighted Clustering Coefficient", 
        y = "Negative Emotion Score",
@@ -79,22 +79,42 @@ lm.fit <- lm(negemo ~ complete_top10_clust_coef, data = df)
 summary(lm.fit)
 ```
 
+
+```{r}
+loess.fit <- loess(negemo ~ complete_top10_clust_coef, data = df)
+summary(loess.fit)
+```
+
 There appears to be a weak, yet statistically significant relationship
 between clustering coefficient and negative sentiment. 
 
+# Regression of negative sentiment onto all LIWC features & Clustering Coefficient 
+```{r}
+# complete_top10_lm.fit <- lm(negemo ~., data = df %>% 
+#      select(-c(subreddit, complete_clust_coef, complete_log_clust_coef,
+#                complete_top10_log_clust_coef)))
+# summary(complete_top10_lm.fit)
+```
+
 ```{r}
 # IGNORE THIS CODE FOR NOW 
-# df <-
-#   df %>%
-#   mutate(quartile = ifelse(clust_coef <= quantile(clust_coef, prob = .25, na.rm = T), 
-#                            "bottom_25",
-#                            ifelse(clust_coef >= quantile(clust_coef, prob = .75, na.rm = T), 
-#                                   "top_25", "middle")))
-# df %>%
-#   filter(quartile != "middle") %>%
-#   ggplot(mapping = aes(x = quartile, y = negemo)) +
-#   geom_bar(stat = "identity") +
-#   labs(x = "Weighted Clustering Coefficient Quartile",
-#        y = "Negative Sentiment Score",
-#        title = "Negative Sentiment vs. Top & Bottom Clustering Coefficient Quartiles")
+df <-
+  df %>%
+  mutate(quartile = ifelse(complete_top10_clust_coef <= 
+                             quantile(complete_top10_clust_coef, prob = .25, na.rm = T),
+                           "bottom_25",
+                           ifelse(complete_top10_clust_coef >= 
+                                    quantile(complete_top10_clust_coef, prob = .75, na.rm = T),
+                                  "top_25", "middle")))
+df %>%
+  filter(quartile != "middle") %>%
+  ggplot(mapping = aes(x = quartile, y = negemo)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Weighted Clustering Coefficient Quartile",
+       y = "Negative Sentiment Score",
+       title = "Negative Sentiment vs. Top & Bottom Clustering Coefficient Quartiles")
 ```
+
+
+
+
