@@ -14,14 +14,21 @@ library(GGally)
 library(tidyverse)
 
 # Clustering coefficient input files 
-# avg_top10_coef_file_in <- "WeightedClusteringCoefficient_MonthlyAverageTop10/weightedClusteringCoefficients.csv"
-# avg_coef_file_in <- "WeightedClusteringCoefficient_MonthlyAverage/weightedClusteringCoefficients.csv"
+avg_top10_coef_file_in <- "WeightedClusteringCoefficient_MonthlyAverageTop10/weightedClusteringCoefficients.csv"
+avg_coef_file_in <- "WeightedClusteringCoefficient_MonthlyAverage/weightedClusteringCoefficients.csv"
 complete_top10_coef_file_in <- "WeightedClusteringCoefficient_CompleteGraphTop10/weightedClusteringCoefficients.csv"
 complete_coef_file_in <- "WeightedClusteringCoefficient_CompleteGraph/weightedClusteringCoefficients.csv"
+
+# Alternate clustering coefficient input files
+avg_top10_alt_clust_coef_file_in <- "data/weighted-coefficients-reddit-monthly-average-top10.csv"
+complete_top10_alt_clust_coef_file_in <- "data/weighted-coefficients-reddit-top10.csv"
+
 
 # Node strength input files 
 complete_top10_ns_file_in <- "data/complete_top10_ns.tsv"
 complete_ns_file_in <- "data/complete_ns.tsv"
+avg_ns_file_in <- "data/monthly_ns.tsv"			
+avg_top10_ns_file_in <- "data/monthly_top10_ns.tsv"
 
 # LIWC input file 
 liwc_file_in <- "data/liwc_data.tsv"
@@ -35,15 +42,33 @@ df <-
   # Impute missing values with column medians 
   dmap_at(colnames(.), ~ifelse(is.na(.x), median(.x, na.rm = T), .x))  %>%
   
-  # Merge with complete graph data 
+  # Merge with complete graph data clustering coefficients 
   left_join(read_csv(complete_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
   plyr::rename(replace = c("Clustering_Coefficients" = "complete_clust_coef", 
                            "Log_Clustering_Coefficients" = "complete_log_clust_coef")) %>%
   
-  # Merge with complete top 10% graph data 
+  # Merge with complete top 10% graph data clustering coefficients 
   left_join(read_csv(complete_top10_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
   plyr::rename(replace = c("Clustering_Coefficients" = "complete_top10_clust_coef", 
                            "Log_Clustering_Coefficients" = "complete_top10_log_clust_coef")) %>%
+  
+  # Merge with monthly average graph data clustering coefficients 
+  left_join(read_csv(avg_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
+  plyr::rename(replace = c("Clustering_Coefficients" = "avg_clust_coef", 
+                           "Log_Clustering_Coefficients" = "avg_log_clust_coef")) %>%
+  
+  # Merge with monthly average top 10% graph data clustering coefficients 
+  left_join(read_csv(avg_top10_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
+  plyr::rename(replace = c("Clustering_Coefficients" = "avg_top10_clust_coef", 
+                           "Log_Clustering_Coefficients" = "avg_top10_log_clust_coef")) %>%
+  
+  # Merge with monthly average top 10% graph data alternate clustering coefficients 
+  left_join(read_csv(avg_top10_alt_clust_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
+  plyr::rename(replace = c("Clustering_Coefficients" = "avg_top10_alt_clust_coef")) %>%
+  
+   # Merge with monthly average top 10% graph data alternate clustering coefficients 
+  left_join(read_csv(complete_top10_alt_clust_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
+  plyr::rename(replace = c("Clustering_Coefficients" = "complete_top10_alt_clust_coef")) %>%
 
   # Merge with complete top 10% graph data 
   left_join(read_tsv(complete_ns_file_in)) %>%
@@ -51,6 +76,12 @@ df <-
   plyr::rename(replace = c("node_strength" = "complete_ns")) %>% 
   left_join(read_tsv(complete_top10_ns_file_in)) %>%
   plyr::rename(replace = c("node_strength" = "complete_top10_ns")) %>% 
+  select(-X1) %>%
+  left_join(read_tsv(avg_ns_file_in)) %>%
+  plyr::rename(replace = c("node_strength" = "avg_ns")) %>% 
+  select(-X1) %>%
+  left_join(read_tsv(avg_top10_ns_file_in)) %>%
+  plyr::rename(replace = c("node_strength" = "avg_top10_ns")) %>% 
   select(-X1)
 ```
 
@@ -66,23 +97,23 @@ my_fn <- function(data, mapping, ...){
 }
 labels <- c("Node Strength", "Clust. Coef.", "Neg. Sent.")
 df %>%
-  select(complete_ns, complete_clust_coef, negemo) %>%
+  select(avg_ns, avg_clust_coef, negemo) %>%
   ggpairs(mapping = ggplot2::aes(alpha = 20),
           lower = list(continuous = my_fn),
           columnLabels = labels,
           upper = list(continuous = wrap("cor", size = 3)),
-          title = "Complete Graph Network Properties vs. Negative Sentiment")
+          title = "Monthly Average Graph Network Properties vs. Negative Sentiment")
 ```
 
 ##Complete Graph Filtered to Top 10% of Edge Weights
 ```{r}
 df %>%
-  select(complete_top10_ns, complete_top10_clust_coef, negemo) %>%
+  select(avg_top10_ns, avg_top10_clust_coef, negemo) %>%
   ggpairs(mapping = ggplot2::aes(alpha = 5),
           lower = list(continuous = my_fn),
           columnLabels = labels,
           upper = list(continuous = wrap("cor", size = 3)),
-          title = "Complete Top 10% Graph: Network Properties vs. Negative Sentiment")
+          title = "Monthly Average Top 10% Graph: Network Properties vs. Negative Sentiment")
 ```
 
 #Clustering coefficient vs. negative sentiment
@@ -94,18 +125,18 @@ coefficient and negative sentiment by examining the following plot and
 inspecting a linear regression analysis. 
 ```{r}
 df %>%
-  ggplot(mapping = aes(x = complete_clust_coef, y = negemo)) +
+  ggplot(mapping = aes(x = avg_clust_coef, y = negemo)) +
   geom_point(alpha = 0.2) +
   geom_smooth(method = "loess") +
   labs(x = "Weighted Clustering Coefficient", 
        y = "Negative Emotion Score",
-       title = "Complete Graph: \nClustering Coefficient vs. Negative Sentiment") 
+       title = "Monthly Average Graph: \nClustering Coefficient vs. Negative Sentiment") 
 ```
 
 ###Linear Regression: Clusterting Coefficient vs. Negative Sentiment 
 
 ```{r}
-lm.fit <- lm(negemo ~ complete_clust_coef, data = df)
+lm.fit <- lm(negemo ~ avg_clust_coef, data = df)
 summary(lm.fit)
 ```
 
@@ -119,18 +150,18 @@ coefficient and negative sentiment by examining the following plot and
 inspecting a linear regression analysis. 
 ```{r}
 df %>%
-  ggplot(mapping = aes(x = complete_top10_clust_coef, y = negemo)) +
+  ggplot(mapping = aes(x = avg_top10_clust_coef, y = negemo)) +
   geom_point(alpha = 0.2) +
   geom_smooth(method = "loess") +
   labs(x = "Weighted Clustering Coefficient", 
        y = "Negative Emotion Score",
-       title = "Complete Top 10% Graph: \nClustering Coefficient vs. Negative Sentiment") 
+       title = "Monthly Average 10% Graph: \nClustering Coefficient vs. Negative Sentiment") 
 ```
 
 ###Linear Regression: Clusterting Coefficient vs. Negative Sentiment 
 
 ```{r}
-lm.fit <- lm(negemo ~ complete_top10_clust_coef, data = df)
+lm.fit <- lm(negemo ~ avg_top10_clust_coef, data = df)
 summary(lm.fit)
 ```
 
@@ -140,7 +171,7 @@ between clustering coefficient and negative sentiment.
 ###LOESS Regression: Clusterting Coefficient vs. Negative Sentiment 
 
 ```{r}
-loess.fit <- loess(negemo ~ complete_top10_clust_coef, data = df)
+loess.fit <- loess(negemo ~ avg_top10_clust_coef, data = df)
 summary(loess.fit)
 ```
 
@@ -164,18 +195,18 @@ df %>%
 ###Node Strength vs. Negative Sentiment 
 ```{r}
 df %>%
-  ggplot(mapping  = aes(x = complete_ns, y = negemo)) +
+  ggplot(mapping  = aes(x = avg_ns, y = negemo)) +
   geom_point(alpha = 0.2) +
   geom_smooth(method = "loess") +
   # geom_smooth(method = "lm", color = "red") + 
   labs(x = "Node Strength", y = "Negative Sentiment Score",
-       title = "Complete Graph:\nNode Strength vs. Negative Sentiment")
+       title = "Monthly Average Graph:\nNode Strength vs. Negative Sentiment")
 ```
 
 ###Linear Regression: Node Strength vs. Negative Sentiment 
 
 ```{r}
-lm.ns.fit <- lm(negemo ~ complete_ns, data = df)
+lm.ns.fit <- lm(negemo ~ avg_ns, data = df)
 summary(lm.ns.fit)
 ```
 
@@ -204,5 +235,25 @@ summary(lm.ns.fit)
 #   labs(x = "Node Strength Quartile",
 #        y = "Mean Negative Sentiment Score",
 #        title = "Negative Sentiment vs. Top & Bottom Node Strength Quartiles")
+```
+
+
+#Alternate Clustering Coefficient Metric 
+
+```{r}
+df %>%
+  ggplot(mapping  = aes(x = complete_top10_alt_clust_coef, y = negemo)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "loess") +
+  # scale_x_log10() +
+  # scale_y_log10() +
+  # geom_smooth(method = "lm", color = "red") + 
+  labs(x = "Alt. Clustering Coeffficnet", y = "Negative Sentiment Score",
+       title = "Monthly Average Graph:\nAlt Clustering Coefficient vs. Negative Sentiment")
+```
+
+
+```{r}
+summary(lm(negemo ~ avg_top10_clust_coef, data = df))
 ```
 
