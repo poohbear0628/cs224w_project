@@ -181,20 +181,28 @@ summary(lm.ns.fit)
 
 
 ```{r}
-# IGNORE THIS CODE FOR NOW 
+# # IGNORE THIS CODE FOR NOW
 # df <-
 #   df %>%
-#   mutate(quartile = ifelse(complete_top10_clust_coef <= 
-#                              quantile(complete_top10_clust_coef, prob = .25, na.rm = T),
+#   mutate(quartile = ifelse(complete_top10_ns <=
+#                              quantile(complete_top10_ns, prob = .25, na.rm = T),
 #                            "bottom_25",
-#                            ifelse(complete_top10_clust_coef >= 
-#                                     quantile(complete_top10_clust_coef, prob = .75, na.rm = T),
+#                            ifelse(complete_top10_ns >=
+#                                     quantile(complete_top10_ns, prob = .75, na.rm = T),
 #                                   "top_25", "middle")))
+# 
 # df %>%
 #   filter(quartile != "middle") %>%
-#   ggplot(mapping = aes(x = quartile, y = negemo)) +
+#   group_by(quartile) %>%
+#   summarise(mean_negemo = mean(negemo),
+#             se = sd(negemo)/sqrt(n())) %>%
+#   mutate(ymin = mean_negemo - se,
+#          ymax = mean_negemo + se) %>%
+#   ggplot(mapping = aes(x = quartile, y = mean_negemo)) +
 #   geom_bar(stat = "identity") +
-#   labs(x = "Weighted Clustering Coefficient Quartile",
-#        y = "Negative Sentiment Score",
-#        title = "Negative Sentiment vs. Top & Bottom Clustering Coefficient Quartiles")
+#   geom_errorbar(mapping = aes(ymax = ymax, ymin = ymin)) +
+#   labs(x = "Node Strength Quartile",
+#        y = "Mean Negative Sentiment Score",
+#        title = "Negative Sentiment vs. Top & Bottom Node Strength Quartiles")
 ```
+
