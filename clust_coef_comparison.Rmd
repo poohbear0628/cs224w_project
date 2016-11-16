@@ -1,0 +1,384 @@
+---
+title: "Clustering Coefficient Comparison"
+author: "Samuel Hansen"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, cache = TRUE)
+```
+
+```{r}
+# Initialize libraries 
+library(stringr)
+library(tidyverse)
+
+# NOTE: I only use data from the graphs filtered to the Top 10% of edge weights.
+# "Monthly" refers to the graph built from monthly averages, and "yearly"
+# refers to the graph built from user overlaps over the year. 
+
+# Clustering coefficient input files 
+monthly_coef_file_in <- "WeightedClusteringCoefficient_MonthlyAverageTop10/weightedClusteringCoefficients.csv"
+yearly_coef_file_in <- "WeightedClusteringCoefficient_CompleteGraphTop10/weightedClusteringCoefficients.csv"
+
+# Alternate clustering coefficient input files
+monthly_alt_clust_coef_file_in <- "data/weighted-coefficients-reddit-monthly-average-top10.csv"
+yearly_alt_clust_coef_file_in <- "data/weighted-coefficients-reddit-top10.csv"
+
+# Node strength input files 
+yearly_ns_file_in <- "data/complete_top10_ns.tsv"
+monthly_ns_file_in <- "data/monthly_top10_ns.tsv"
+
+# LIWC input file 
+liwc_file_in <- "data/liwc_data.tsv"
+
+df <-
+  # Read in LIWC data 
+  read_tsv(liwc_file_in, col_names = FALSE) %>%
+  plyr::rename(replace = c("X1" = "subreddit", "X2" = "category", "X3" = "fraction")) %>%
+  spread(category, fraction) %>%
+  
+  # Impute missing values with column medians 
+  dmap_at(colnames(.), ~ifelse(is.na(.x), median(.x, na.rm = T), .x))  %>%
+  
+  # Merge with yearly graph data clustering coefficients 
+  left_join(read_csv(yearly_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
+  plyr::rename(replace = c("Clustering_Coefficients" = "yearly_clust_coef", 
+                           "Log_Clustering_Coefficients" = "yearly_log_clust_coef")) %>%
+  
+  # Merge with monthly graph data clustering coefficients 
+  left_join(read_csv(monthly_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
+  plyr::rename(replace = c("Clustering_Coefficients" = "monthly_clust_coef", 
+                           "Log_Clustering_Coefficients" = "monthly_log_clust_coef")) %>%
+  
+  # Merge with yearly graph data alternate clustering coefficients 
+  left_join(read_csv(yearly_alt_clust_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
+  plyr::rename(replace = c("Clustering_Coefficients" = "yearly_alt_clust_coef")) %>%
+  
+  # Merge with monthly graph data alternate clustering coefficients 
+  left_join(read_csv(monthly_alt_clust_coef_file_in), by = c("subreddit" = "SubReddit_Name")) %>%
+  plyr::rename(replace = c("Clustering_Coefficients" = "monthly_alt_clust_coef")) %>%
+  
+  # Merge with node strength data
+  left_join(read_tsv(yearly_ns_file_in)) %>%
+  plyr::rename(replace = c("node_strength" = "yearly_ns")) %>% 
+  select(-X1) %>%
+  left_join(read_tsv(monthly_ns_file_in)) %>%
+  plyr::rename(replace = c("node_strength" = "monthly_ns")) %>% 
+  select(-X1)
+```
+
+
+# Clustering Coefficient vs. Negative Sentiment by Graph Type
+
+##Scatterplots 
+```{r}
+df %>%
+  select(negemo, monthly_clust_coef, yearly_clust_coef, 
+         monthly_alt_clust_coef, yearly_alt_clust_coef) %>%
+  gather(clust_coef_type, clust_coef, monthly_clust_coef:yearly_alt_clust_coef) %>%
+  mutate(graph = ifelse(str_detect(clust_coef_type, "monthly"), "Monthly Graph", "Yearly Graph"),
+         clust_coef_type = ifelse(str_detect(clust_coef_type, "alt"), 
+                                  "Onnela Coefficient", "Barrat Coefficient")) %>%
+  ggplot(mapping = aes(x = clust_coef, y = negemo)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth(method = "loess") +
+  facet_grid(graph~clust_coef_type, scales = "free_x") +
+  labs(x = "Clustering Coefficient Value", y = "Negative Sentiment Score",
+       title = "Clustering Coefficient vs. Negative Sentiment by Graph Type")
+```
+
+##Barplots 
+```{r}
+clust_summary_df <-
+  df %>%
+  select(negemo, monthly_clust_coef, yearly_clust_coef, 
+         monthly_alt_clust_coef, yearly_alt_clust_coef) %>%
+  gather(clust_coef_type, clust_coef, monthly_clust_coef:yearly_alt_clust_coef) %>%
+  mutate(graph = ifelse(str_detect(clust_coef_type, "monthly"), "Monthly Graph", "Yearly Graph"),
+         clust_coef_type = ifelse(str_detect(clust_coef_type, "alt"), 
+                                  "Onnela Coefficient", "Barrat Coefficient")) %>%
+  
+  group_by(clust_coef_type, graph) %>%
+  mutate(quartile = ifelse(clust_coef >= quantile(clust_coef, prob = 0.75, na.rm = T), "Top 25%",
+                           ifelse(clust_coef <=  quantile(clust_coef, prob = 0.25, na.rm = T), "Bottom 25%",
+                           "middle"))) %>%
+  filter(quartile != "middle") 
+```
+
+```{r}
+label.df <- data.frame(clust_coef_type = "Onnela Coefficient",
+                       graph = c("Monthly Graph", "Yearly Graph"),
+                       quartile = "Top 25%",
+                       mean_negemo = c(0.0193, 0.0195))
+clust_summary_df %>%
+  group_by(graph, clust_coef_type, quartile) %>%
+  summarize(mean_negemo = mean(negemo),
+            se = sd(negemo)/sqrt(n())) %>%
+  mutate(ymin = mean_negemo - se,
+         ymax = mean_negemo + se) %>%
+  ggplot(mapping = aes(x = quartile, y = mean_negemo, fill = quartile)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(mapping = aes(ymax = ymax, ymin = ymin)) +
+  facet_grid(graph~clust_coef_type) +
+  labs(x = "Clustering Coefficient Quartile", y = "Mean Negative Sentiment Score",
+       title = "Clustering Coefficient vs. Negative Sentiment by Graph Type") +
+  geom_text(data = label.df, label = c("*", "**")) +
+  guides(fill=FALSE)
+```
+
+##Mann-Whitney Tests 
+
+###Negative Sentiment vs. Onnela Coefficient 
+
+####Monthly Graph
+```{r}
+clust_summary_df %>%
+  filter(clust_coef_type == "Onnela Coefficient", 
+         graph == "Monthly Graph") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(negemo, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(negemo ~ quartile, data = .) 
+```
+
+####Yearly Graph
+```{r}
+clust_summary_df %>%
+  filter(clust_coef_type == "Onnela Coefficient", 
+         graph == "Yearly Graph") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(negemo, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(negemo ~ quartile, data = .) 
+```
+
+###Negative Sentiment vs. Barrat Coefficient 
+
+####Monthly Graph
+```{r}
+clust_summary_df %>%
+  filter(clust_coef_type == "Barrat Coefficient", 
+         graph == "Monthly Graph") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(negemo, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(negemo ~ quartile, data = .) 
+```
+
+####Yearly Graph
+```{r}
+clust_summary_df %>%
+  filter(clust_coef_type == "Barrat Coefficient", 
+         graph == "Yearly Graph") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(negemo, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(negemo ~ quartile, data = .) 
+```
+
+#Node Strength vs. Negative Sentiment 
+
+##Scatterplots
+```{r}
+ns_summary_df <- 
+  df %>%
+  select(posemo, negemo, yearly_ns, monthly_ns) %>%
+  gather(graph, node_strength, yearly_ns:monthly_ns) %>%
+  mutate(graph = str_replace(graph, pattern = "_ns", replacement = ""),
+         graph = ifelse(graph == "yearly", "Yearly Graph", "Monthly Graph")) %>%
+  gather(sentiment, score, posemo:negemo) %>%
+  group_by(graph, sentiment) %>%
+  mutate(quartile = ifelse(node_strength >= quantile(node_strength, prob = 0.75, na.rm = T), 
+                           "Top 25%",
+                         ifelse(node_strength <=  quantile(node_strength, prob = 0.25, na.rm = T), 
+                                "Bottom 25%", "middle")))
+```
+
+```{r}
+sent_labs = c("posemo" = "Positive Sentiment",
+              "negemo" = "Negative Sentiment")
+ns_summary_df %>%
+  ggplot(mapping = aes(x = node_strength, y = score)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "loess") +
+  facet_grid(graph~sentiment, labeller = labeller(sentiment = sent_labs)) +
+  labs(x = "Node Strength", y = "Sentiment Score", 
+       title = "Node Strength vs. Sentiment by Graph Type")
+```
+
+
+##Barplots
+```{r}
+label.df <- data.frame(sentiment = c("negemo", "negemo", "posemo", "posemo"),
+                       graph = c("Monthly Graph", "Yearly Graph", "Monthly Graph", "Yearly Graph"),
+                       quartile = c("Top 25%", "Top 25%", "Bottom 25%", "Bottom 25%"),
+                       mean_score = c(0.023, 0.023, 0.039, 0.039))
+ns_summary_df %>%
+  filter(quartile != "middle") %>%
+  group_by(graph, sentiment, quartile) %>%
+  summarize(mean_score = mean(score),
+            se = sd(score)/sqrt(n())) %>%
+  mutate(ymin = mean_score - se,
+         ymax = mean_score + se) %>%
+  ungroup() %>%
+  ggplot(mapping = aes(x = quartile, y = mean_score, fill = quartile)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(mapping = aes(ymax = ymax, ymin = ymin)) +
+  facet_grid(graph~sentiment, labeller = labeller(sentiment = sent_labs)) +
+  labs(x = "Node Strength Quartile", y = "Mean Sentiment Score",
+       title = "Node Strength vs. Sentiment Score by Graph Type") +
+  geom_text(data = label.df, label = c("***")) +
+  guides(fill=FALSE)
+```
+
+
+##Mann-Whitney Tests
+
+###Negative Sentiment vs. Node Strength
+
+####Monthly Graph
+
+```{r}
+ns_summary_df %>%
+  filter(quartile != "middle", 
+         graph == "Monthly Graph",
+         sentiment == "negemo") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(score, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(score ~ quartile, data = .) 
+```
+
+####Yearly Graph
+
+```{r}
+ns_summary_df %>%
+  filter(quartile != "middle", 
+         graph == "Yearly Graph",
+         sentiment == "negemo") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(score, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(score ~ quartile, data = .) 
+```
+
+###Positive Sentiment vs. Node Strength
+
+####Monthly Graph
+
+```{r}
+ns_summary_df %>%
+  filter(quartile != "middle", 
+         graph == "Monthly Graph",
+         sentiment == "posemo") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(score, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(score ~ quartile, data = .) 
+```
+
+####Yearly Graph
+
+```{r}
+ns_summary_df %>%
+  filter(quartile != "middle", 
+         graph == "Yearly Graph",
+         sentiment == "posemo") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(score, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(score ~ quartile, data = .) 
+```
+
+#Distribution Summaries
+
+##Distributions of Positive vs. Negative Sentiment
+```{r}
+df %>%
+  select(posemo, negemo) %>%
+  gather(category, fraction, everything()) %>%
+  ggplot(mapping = aes(x = fraction, fill  = category)) +
+  geom_density(alpha = 1/2) +
+  scale_fill_discrete(name = "LIWC Category",
+                      labels = c("posemo" = "Positive Emotion",
+                                 "negemo" = "Negative Emotion")) + 
+  labs(x = "Sentiment Score", y = "Density", 
+       title = "Sentiment Distribution across Subreddits")
+```
+
+Positive sentiment is higher than negative sentiment across subreddits,
+on average. 
+
+##Subreddits with Highest Negative Sentiment 
+```{r}
+df %>% 
+  arrange(desc(negemo)) %>%
+  slice(1:20) %>%
+  ggplot(mapping = aes(x = reorder(subreddit, negemo), y = negemo)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(breaks = seq(0,0.13,0.01), labels = scales::percent) +
+  coord_flip() +
+  labs(x = "Subreddit", y = "Average Percent of Negative Emotion Words",
+       title = "Percent of Negative Emotion Words in Top 20 Subreddits")
+```
+
+Subreddits with the highest negative sentiment tend to be related to **Sports**.
+
+##Subreddits with Highest Positive Sentiment 
+```{r}
+df %>% 
+  arrange(desc(posemo)) %>%
+  slice(1:20) %>%
+  ggplot(mapping = aes(x = reorder(subreddit, posemo), y = posemo)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = scales::percent) +
+  coord_flip() +
+  labs(x = "Subreddit", y = "Average Percent of Positive Emotion Words",
+       title = "Percent of Positive Emotion Words in Top 20 Subreddits")
+```
+
+Subreddits with the highest negative sentiment tend to be **NSFW**. 
+
+##Distributions of Clustering Coefficients by Graph Type
+
+```{r}
+df %>%
+  select(monthly_clust_coef, yearly_clust_coef, 
+         monthly_alt_clust_coef, yearly_alt_clust_coef) %>%
+  gather(clust_coef_type, clust_coef, monthly_clust_coef:yearly_alt_clust_coef) %>%
+  mutate(graph = ifelse(str_detect(clust_coef_type, "monthly"), "Monthly Graph", "Yearly Graph"),
+         clust_coef_type = ifelse(str_detect(clust_coef_type, "alt"), 
+                                  "Onnela Coefficient", "Barrat Coefficient")) %>%
+  ggplot(mapping = aes(x = clust_coef)) +
+  geom_histogram() +
+  facet_grid(graph~clust_coef_type, scales = "free") +
+  labs(x = "Clustering Coefficient Value", y = "Count",
+       title = "Histogram of Clustering Coefficients by Graph Type")
+```
+
+##Distributions of Node Strength by Graph Type
+
+```{r}
+df %>%
+  select(monthly_ns, yearly_ns) %>%
+  gather(graph, node_strength, monthly_ns:yearly_ns) %>%
+  mutate(graph = str_replace(graph, pattern = "_ns", replacement = ""),
+         graph = ifelse(graph == "yearly", "Yearly Graph", "Monthly Graph")) %>%
+  ggplot(mapping = aes(x = node_strength)) +
+  geom_histogram(binwidth = 0.1) +
+  facet_grid(graph~.) +
+  labs(x = "Node Strength", y = "Count",
+       title = "Histogram of Node Strengths by Graph Type")
+```
+
