@@ -1,0 +1,414 @@
+---
+title: "NSFW Analysis"
+author: "Samuel Hansen"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, 
+                      warning = FALSE, cache = TRUE)
+```
+
+```{r}
+# Initialize libraries 
+library(rvest)
+library(stringr)
+library(tidyverse)
+
+# Network data input file
+network_file_in <- "data/networkx-weighted-coefficients.tsv"
+# Complete network data input file 
+complete_network_file_in <- "data/networkx-weighted-coefficients-complete.tsv"
+# LIWC data input file 
+liwc_file_in <- "data/liwc_data.tsv"
+# Node strength input files 
+yearly_ns_file_in <- "data/complete_ns.tsv"
+monthly_ns_file_in <- "data/monthly_ns.tsv"
+```
+
+```{r}
+# Read in node strength data 
+node_strength_df <-
+  
+  # Read in yearly graph node strengths 
+  read_tsv(yearly_ns_file_in) %>%
+  plyr::rename(replace = c("node_strength" = "yearly_ns")) %>% 
+  select(-X1) %>%
+  
+  # Read in monthly graph node strengths 
+  left_join(read_tsv(monthly_ns_file_in)) %>%
+  plyr::rename(replace = c("node_strength" = "monthly_ns")) %>% 
+  select(-X1) %>%
+  
+  # Gather columns into subreddit, network_type, node_strength 
+  gather(network_type, node_strength, yearly_ns:monthly_ns) %>%
+  mutate(network_type = str_replace(network_type, 
+                                    pattern = "_ns", replacement = "")) 
+  
+# Read in network data 
+network_df <- read_tsv(network_file_in)
+
+# Create data frame 
+df <- 
+  # Load in complete network data 
+  left_join(network_df %>% distinct(subreddit, unique_users), 
+            read_tsv(complete_network_file_in) %>% 
+              mutate(percent_edges_filtered = "100%")) %>%
+  
+  # Bind rest of network data 
+  bind_rows(network_df) %>% 
+  
+  # Join LIWC data 
+  left_join(
+    read_tsv(liwc_file_in, col_names = FALSE) %>%
+    plyr::rename(replace = c("X1" = "subreddit", 
+                             "X2" = "category", 
+                             "X3" = "fraction")) %>%
+    spread(category, fraction) %>%
+    
+    # Impute missing values with column medians 
+    dmap_at(colnames(.), ~ifelse(is.na(.x), median(.x, na.rm = T), .x)),
+    by = c("subreddit")
+  ) %>%
+  
+  # Join node strength data 
+  left_join(node_strength_df)
+```
+
+
+```{r}
+# Load list of default subreddits 
+default_subs <- 
+  read_delim("data/default_subreddits.txt", delim = "\n") %>%
+  c()
+
+# Load list of NSFW Subreddits
+nsfw_subs <- 
+  read_delim("data/nsfw_subreddits.txt", delim = "\n", col_names = FALSE) %>%
+  plyr::rename(replace = c("X1" = "nsfw_subreddit")) %>% 
+  dmap_at("nsfw_subreddit", str_trim) %>% 
+  c()
+
+df <-
+  df %>%
+  # Label Default subreddits 
+  mutate(subreddit_type = ifelse(subreddit %in% default_subs$default_subreddits, 
+                                 "Default", "Non-Default"),
+         nsfw_status = ifelse(subreddit %in% nsfw_subs$nsfw_subreddit, 
+                                 "NSFW", "SFW"))
+```
+
+#Networks with Unfiltered Edges 
+
+##Clustering Coefficient vs. Negative Sentiment
+
+###Scatterplot
+
+```{r}
+network_labs <- c("yearly" = "Yearly Graph", "monthly" = "Monthly Graph")
+df %>%
+  filter(percent_edges_filtered == "100%") %>%
+  ggplot(mapping = aes(x = clustering_coefficient, y = negemo, color = nsfw_status)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth(method = "loess") +
+  # geom_smooth(method = "lm", color = "red") +
+  scale_y_log10() + 
+  scale_x_log10() +
+  facet_grid(network_type~., 
+             labeller = labeller(network_type = network_labs)) +
+  labs(x = "Clustering Coefficient Value", y = "Negative Sentiment Score",
+       title = "Clustering Coefficient vs. Negative Sentiment by Graph Type") +
+  scale_color_discrete(name = "Subreddit Type")
+```
+
+###Regression 
+
+####Yearly Graph
+```{r}
+summary(lm(log10(negemo) ~ log10(clustering_coefficient) + nsfw_status, 
+                 data = df %>% filter(network_type == "yearly",
+                                      percent_edges_filtered == "100%")))
+```
+
+####Monthly Graph
+```{r}
+summary(lm(log10(negemo) ~ log10(clustering_coefficient) + + nsfw_status, 
+                 data = df %>% filter(network_type == "monthly",
+                                      percent_edges_filtered == "100%")))
+```
+
+###Barplot
+
+```{r}
+# Compute quartiles of clustering coefficient 
+nsfw_clust_summary_df <- 
+df %>%
+  group_by(network_type, percent_edges_filtered, nsfw_status) %>%
+  mutate(quartile = ifelse(clustering_coefficient >= 
+                             quantile(clustering_coefficient, 
+                                      prob = 0.75, na.rm = T), "Top 25%",
+                           ifelse(clustering_coefficient <= 
+                                    quantile(clustering_coefficient, 
+                                             prob = 0.25, na.rm = T), "Bottom 25%",
+                           "middle"))) %>%
+  filter(quartile != "middle") %>%
+  ungroup()
+```
+
+```{r}
+label.df <- data.frame(network_type = c("monthly", "yearly", "monthly", "yearly"),
+                       nsfw_status = c("NSFW", "NSFW", "SFW", "SFW"),
+                       quartile = c("Top 25%", "Top 25%", "Top 25%", "Top 25%"),
+                       mean_negemo = c(0.0288, 0.029, 0.0229, 0.0228))
+
+nsfw_clust_summary_df %>%
+  filter(percent_edges_filtered == "100%") %>%
+  group_by(network_type, quartile, nsfw_status) %>%
+  summarize(mean_negemo = mean(negemo),
+            se = sd(negemo)/sqrt(n())) %>%
+  mutate(ymin = mean_negemo - se,
+         ymax = mean_negemo + se) %>%
+  ggplot(mapping = aes(x = quartile, y = mean_negemo, fill = quartile)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(mapping = aes(ymax = ymax, ymin = ymin)) +
+  geom_text(data = label.df, label = c("***", "***", "***", "***")) +
+  facet_grid(network_type ~ nsfw_status,
+             labeller = labeller(network_type = network_labs)) +
+  labs(x = "Clustering Coefficient Quartile", y = "Mean Negative Sentiment Score",
+       title = "Clustering Coefficient vs. Negative Sentiment by Graph Type") +
+  guides(fill=FALSE)
+```
+
+###Mann-Whitney Tests 
+
+####Yearly Graph
+
+#####SFW
+```{r}
+nsfw_clust_summary_df %>%
+  filter(network_type == "yearly", nsfw_status == "SFW",
+         percent_edges_filtered == "100%") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(negemo, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(negemo ~ quartile, data = .) 
+```
+
+#####NSFW
+```{r}
+nsfw_clust_summary_df %>%
+  filter(network_type == "yearly", nsfw_status == "NSFW",
+         percent_edges_filtered == "100%") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(negemo, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(negemo ~ quartile, data = .) 
+```
+
+####Monthly Graph
+
+#####SFW
+```{r}
+nsfw_clust_summary_df %>%
+  filter(network_type == "monthly", nsfw_status == "SFW",
+         percent_edges_filtered == "100%") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(negemo, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(negemo ~ quartile, data = .) 
+```
+
+#####NSFW
+```{r}
+nsfw_clust_summary_df %>%
+  filter(network_type == "monthly", nsfw_status == "NSFW",
+         percent_edges_filtered == "100%") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(negemo, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(negemo ~ quartile, data = .) 
+```
+
+##Node Strength vs. Negative Sentiment 
+
+###Scatterplot
+```{r}
+df %>%
+  filter(percent_edges_filtered == "100%") %>%
+  ggplot(mapping = aes(x = node_strength, y = negemo, color = nsfw_status)) +
+  geom_point(alpha = 0.1) +
+  # scale_x_log10() +
+  scale_y_log10() +
+  geom_smooth(method = "loess") +
+  facet_grid(network_type~., labeller = labeller(network_type = network_labs)) +
+  labs(x = "Node Strength", y = "Negative Sentiment Score",
+       title = "Node Strength vs. Negative Sentiment") +
+  scale_color_discrete(name = "Subreddit Type")
+```
+
+###Regression
+
+####Yearly Graph
+```{r}
+summary(lm(log10(negemo) ~ node_strength + nsfw_status, 
+                 data = df %>% filter(network_type == "yearly",
+                                      percent_edges_filtered == "100%")))
+```
+
+A 1 unit change in node strength is associated with a 0.044% change in 
+negative sentiment. 
+####Monthly Graph
+```{r}
+summary(lm(log10(negemo) ~ log10(node_strength) + nsfw_status, 
+                 data = df %>% filter(network_type == "monthly",
+                                      percent_edges_filtered == "100%")))
+```
+
+###Barplot
+
+```{r}
+# Compute quartiles of node strength
+nsfw_ns_summary_df <- 
+df %>%
+  filter(percent_edges_filtered == "100%") %>%
+  group_by(network_type, nsfw_status) %>%
+  mutate(quartile = ifelse(node_strength >= 
+                             quantile(node_strength, 
+                                      prob = 0.75, na.rm = T), "Top 25%",
+                           ifelse(node_strength <= 
+                                    quantile(node_strength, 
+                                             prob = 0.25, na.rm = T), "Bottom 25%",
+                           "middle"))) %>%
+  filter(quartile != "middle") %>%
+  ungroup()
+```
+
+```{r}
+label.df <- data.frame(network_type = c("monthly", "yearly", "monthly", "yearly"),
+                       nsfw_status = c("NSFW", "NSFW", "SFW", "SFW"),
+                       quartile = c("Top 25%", "Top 25%", "Top 25%", "Top 25%"),
+                       mean_negemo = c(0.0288, 0.0288, 0.0229, 0.0228))
+
+nsfw_ns_summary_df %>%
+  group_by(network_type, quartile, nsfw_status) %>%
+  summarize(mean_negemo = mean(negemo),
+            se = sd(negemo)/sqrt(n())) %>%
+  mutate(ymin = mean_negemo - se,
+         ymax = mean_negemo + se) %>%
+  ggplot(mapping = aes(x = quartile, y = mean_negemo, fill = quartile)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(mapping = aes(ymax = ymax, ymin = ymin)) +
+  facet_grid(network_type~nsfw_status,
+             labeller = labeller(network_type = network_labs)) +
+  labs(x = "Node Strength Quartile", y = "Mean Negative Sentiment Score",
+       title = "Node Strength vs. Negative Sentiment by Graph Type") +
+  geom_text(data = label.df, label = c("***", "***", "***", "***")) +
+  guides(fill=FALSE)
+```
+
+###Mann-Whitney Tests 
+
+####Yearly Graph
+
+#####SFW
+```{r}
+nsfw_ns_summary_df %>%
+  filter(network_type == "yearly", nsfw_status == "SFW",
+         percent_edges_filtered == "100%") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(negemo, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(negemo ~ quartile, data = .) 
+```
+
+#####NSFW
+```{r}
+nsfw_ns_summary_df %>%
+  filter(network_type == "yearly", nsfw_status == "NSFW",
+         percent_edges_filtered == "100%") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(negemo, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(negemo ~ quartile, data = .) 
+```
+
+####Monthly Graph
+
+#####SFW
+```{r}
+nsfw_ns_summary_df %>%
+  filter(network_type == "monthly", nsfw_status == "SFW",
+         percent_edges_filtered == "100%") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(negemo, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(negemo ~ quartile, data = .) 
+```
+
+#####NSFW
+```{r}
+nsfw_ns_summary_df %>%
+  filter(network_type == "monthly", nsfw_status == "NSFW",
+         percent_edges_filtered == "100%") %>%
+  mutate(quartile = ifelse(quartile == "Top 25%", 1, 0)) %>%
+  ungroup() %>%
+  select(negemo, quartile) %>%
+  as.matrix() %>%
+  wilcox.test(negemo ~ quartile, data = .) 
+```
+
+##Subreddit Size vs. Negative Sentiment 
+
+###Scatterplot
+
+```{r}
+df %>%
+  distinct(subreddit, unique_users, negemo, nsfw_status) %>%
+  ggplot(mapping = aes(x = unique_users, y = negemo, color = nsfw_status)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth(method = "loess") +
+  scale_x_log10(labels = scales::comma) +
+  scale_y_log10() +
+  labs(x = "Number of Unique Users", 
+       y = "Negative Sentiment Score",
+       title = "Subreddit Size vs. Negative Sentiment")+
+  scale_color_discrete(name = "Subreddit Type")
+```
+
+###Regression
+```{r}
+summary(lm(log10(negemo) ~ log10(unique_users) + nsfw_status, 
+                 data = df %>% distinct(subreddit, unique_users, negemo, nsfw_status)))
+```
+
+##Subreddit Size vs. Clustering Coefficient 
+
+###Scatterplot
+```{r}
+df %>%
+  filter(percent_edges_filtered == "100%") %>%
+  ggplot(mapping = aes(x = unique_users, y = clustering_coefficient, 
+                       color = nsfw_status)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth(method = "loess") +
+  scale_x_log10(labels = scales::comma) +
+  scale_y_log10() +
+  facet_grid(.~network_type, 
+             labeller = labeller(network_type = network_labs)) +
+  labs(x = "Number of Unique Users", 
+       y = "Clustering Coefficient",
+       title = "Subreddit Size vs. Clustering Coefficient") +
+  scale_color_discrete(name = "Subreddit Type")
+```
+
+
+
