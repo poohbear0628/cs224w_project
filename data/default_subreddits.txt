@@ -1,4 +1,3 @@
-default_subreddits
 announcements
 Art
 AskReddit
@@ -12,6 +11,7 @@ DIY
 Documentaries
 EarthPorn
 explainlikeimfive
+Fitness
 food
 funny
 Futurology
@@ -31,7 +31,7 @@ Music
 news
 nosleep
 nottheonion
-OldSchoolCool
+oldschoolcool
 personalfinance
 philosophy
 photoshopbattles
@@ -47,4 +47,4 @@ TwoXChromosomes
 UpliftingNews
 videos
 worldnews
-WritingPrompts
+writingprompts
